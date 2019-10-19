@@ -2,7 +2,7 @@ function Main{
 $find_wer = Get-ChildItem $env:programdata\Microsoft\Windows\WER -Recurse -Filter *.wer -ErrorAction SilentlyContinue | Select-Object -First 1
 clear
 if ($find_wer -eq $null) {
-    write-host "no wer files found, do you wish to attempt to create one? WARNING: INTERNET CONNECTION WILL BE RESTARTED!"
+    write-host "No .wer files found, do you wish to attempt to create one? WARNING: INTERNET CONNECTION WILL BE RESTARTED!"
     $answer = Read-Host "Type yes to continue"
     if ($answer -eq "Y" -or $answer -eq "y" -or $answer -eq "yes" -or $answer -eq "Yes" -or $answer -eq "YES"){
         MakeWer
