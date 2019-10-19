@@ -20,8 +20,8 @@ function MakeWer{
         ipconfig /release | Out-Null
         Start-Process -NoNewWindow powershell.exe "-Command `"[Environment]::FailFast('Error')`""
         Write-Host "Trying to force a crash to generate .wer file"
+        Write-Host "Internet is disconnected so the .wer file stays in queue and does not get automatically removed"
         sleep 20
-        $find_wer = Get-ChildItem $env:programdata\Microsoft\Windows\WER -Recurse -Filter *.wer -ErrorAction SilentlyContinue | Select-Object -First 1
         ipconfig /renew | Out-Null
         Main
 
