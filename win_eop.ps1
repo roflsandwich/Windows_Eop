@@ -205,6 +205,7 @@ function Invoke-MoveFileUsingWER($Source, $Destination) {
     import-module NTObjectManager
     New-Item -Type Directory -Path $TempReportDir -Force | Out-Null
     $find_wer = Get-ChildItem $env:programdata\Microsoft\Windows\WER -Recurse -Filter *.wer -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($find_wer -eq $null){write-host "Error, coulnd't load .wer file"}else{write-host "Using $find_wer, continuing..."}
     Copy-Item $find_wer.FullName "$TempReportDir\Report.wer" -ErrorAction Stop
     Copy-Item $find_wer.FullName "$TempReportDir\Report.wer.tmp" -ErrorAction Stop
 
